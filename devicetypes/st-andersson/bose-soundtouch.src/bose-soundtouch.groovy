@@ -19,7 +19,7 @@ import groovy.xml.XmlUtil
 
 // for the UI
 metadata {
-	definition (name: "Bose SoundTouch", namespace: "st-andersson", author: "Henric.Andersson@smartthings.com") {
+	definition (name: "Bose SoundTouch", namespace: "smartthings", author: "Henric.Andersson@smartthings.com") {
     		/**
              * List our capabilties. Doing so adds predefined command(s) which
              * belong to the capability.
@@ -93,7 +93,7 @@ metadata {
         state "default", label:'', action:"refresh", icon:"st.secondary.refresh"
     }
     
-    controlTile("volume", "device.volume", "slider", height:1, width:2, range:"(0..100)") {
+    controlTile("volume", "device.volume", "slider", height:1, width:3, range:"(0..100)") {
     	state "volume", action:"music Player.setLevel"
     }
     
@@ -109,13 +109,6 @@ metadata {
         state "default", label:'', action:"music Player.nextTrack", icon:"st.sonos.next-btn"
     }
 
-    standardTile("muteunmute", "device.mute", decoration: "flat") {
-    	// state muted will mute when pressed, icon shows a speaker playing
-    	state "muted", label:'', icon:'st.custom.sonos.muted', action:'music Player.mute'
-        // state unmuted will unmute when pressed, icon shows a crossed out speaker
-    	state "unmuted", label:'', icon:'st.custom.sonos.unmuted', action:'music Player.unmute'
-    }
-    
     valueTile("everywhere", "device.everywhere", width:2, height:1, decoration:"flat") {
     	state "join", label:"Join\nEverywhere", action:"everywhereJoin"
     	state "leave", label:"Leave\nEverywhere", action:"everywhereLeave"
@@ -130,7 +123,7 @@ metadata {
     details ([
     	"nowplaying", "refresh", 		// Row 1 (112)
         "prev", "playpause", "next", 	// Row 2 (123)
-        "volume", "muteunmute", 		// Row 3 (112)
+        "volume",                		// Row 3 (111)
         "1", "2", "3", 					// Row 4 (123)
         "4", "5", "6", 					// Row 5 (123)
         "aux", "everywhere"])			// Row 6 (122)
@@ -219,6 +212,15 @@ def parse(String event) {
 }
 
 /**
+ * Called when the devicetype is first installed.
+ *
+ * @return action(s) to take or null
+ */
+def installed() {
+    onAction("refresh")
+}
+
+/**
  * Responsible for dealing with user input and taking the
  * appropiate action.
  *
@@ -296,7 +298,7 @@ def onAction(String user, data=null) {
 }
 
 /**
- * Called every so often to refresh the
+ * Called every so often (every 5 minutes actually) to refresh the
  * tiles so the user gets the correct information.
  */
 def poll() {
@@ -482,17 +484,18 @@ def boseSetNowPlaying(xmlData, override=null) {
                 	nowplaying = "Unknown"
         }
     }
-    
-    // lastly, deal with power state
+
+	// Some last parsing which only deals with actual data from device
     if (xmlData) {
         if (xmlData.attributes()['source'] == "STANDBY") {
             log.trace "nowPlaying reports standby: " + XmlUtil.serialize(xmlData)
             sendEvent(name:"switch", value:"off")
-            
         } else {
             sendEvent(name:"switch", value:"on")
         }
+		boseSetPlayerAttributes(xmlData)        
     }
+
     // Do not allow a standby device or AUX to be master
     if (!parent.boseZoneHasMaster() && (override ? override : xmlData.attributes()['source']) == "STANDBY")
     	sendEvent(name:"everywhere", value:"unavailable")
@@ -507,6 +510,52 @@ def boseSetNowPlaying(xmlData, override=null) {
 	sendEvent(name:"nowplaying", value:nowplaying)
     
     return needrefresh
+}
+
+/**
+ * Updates the attributes exposed by the music Player capability
+ *
+ * @param xmlData The NowPlaying XML data
+ */
+def boseSetPlayerAttributes(xmlData) {
+    // Refresh attributes
+    def trackText = ""
+    def trackDesc = ""
+    def trackData = [:]
+    
+    switch (xmlData.attributes()['source']) {
+    	case "STANDBY":
+        	trackData["station"] = trackText = trackDesc = "Standby"
+        	break
+        case "AUX":
+        	trackData["station"] = trackText = trackDesc = "Auxiliary Input"
+            break
+        case "AIRPLAY":
+        	trackData["station"] = trackText = trackDesc = "Air Play"
+            break
+    	case "SPOTIFY":
+            trackText = trackDesc = "${xmlData.track.text()}"
+            trackData["name"] = ${xmlData.track.text()}
+            if (xmlData.artist) {
+	            trackText += " by ${xmlData.artist.text()}"
+                trackDesc += " - ${xmlData.artist.text()}"
+	            trackData["artist"] = ${xmlData.artist.text()}
+            }
+            if (xmlData.album) {
+    	        trackText += " (${xmlData.album.text()})"
+	            trackData["album"] = ${xmlData.album.text()}
+            }
+        	break
+        case "INTERNET_RADIO":
+        	trackDesc = xmlData.stationName.text()
+            trackText = xmlData.stationName.text() + ": " + xmlData.description.text()
+            trackData["station"] = xmlData.stationName.text()
+        	break
+        default:
+            trackText = trackDesc = xmlData.ContentItem.itemName[0].text()
+    }
+
+	sendEvent(name:"trackDescription", value:trackDesc, descriptionText:trackText)
 }
 
 /**

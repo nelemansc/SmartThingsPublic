@@ -15,7 +15,7 @@
  */
 definition(
     name: "Bose SoundTouch (Connect)",
-    namespace: "st-andersson",
+    namespace: "smartthings",
     author: "Henric.Andersson@smartthings.com",
     description: "Control your Bose SoundTouch speakers",
     category: "SmartThings Labs",
@@ -145,15 +145,14 @@ def updated() {
 /**
  * Called by SmartThings Cloud when user uninstalls the app
  *
- * Make sure to remove ALL children so we don't cause issues.
+ * We don't need to manually do anything here because any children
+ * are automatically removed upon the removal of the parent.
+ *
+ * Only time to do anything here is when you need to notify
+ * the remote end. And even then you're discouraged from removing
+ * the children manually.
  */
 def uninstalled() {
-	def devices = getChildDevices()
-	log.trace "deleting ${devices.size()} device"
-	devices.each {
-    	log.trace "Deleting ${it.deviceNetworkId}" 
-		deleteChildDevice(it.deviceNetworkId)
-	}
 }
 
 /**
@@ -192,7 +191,9 @@ def addDevice(){
 		def d = getChildDevice(dni)
 		if(!d) {
 			def newDevice = devices.find { (it.value.mac) == dni }
-            def deviceName = getDeviceName() + "[${newDevice?.value.name}]"    
+            def deviceName = ${newDevice?.value.name} 
+            if (!deviceName)
+                deviceName = getDeviceName() + "[${newDevice?.value.name}]"
 			d = addChildDevice(getNameSpace(), getDeviceName(), dni, newDevice?.value.hub, [label:"${deviceName}"])
             d.boseSetDeviceID(newDevice.value.deviceID)
 			log.trace "Created ${d.displayName} with id $dni"
@@ -423,10 +424,11 @@ def parseSSDP(lanEvent) {
 
     if (!(devices."${USN}")) { 
         //device does not exist
-        log.trace "Adding Device \"${USN}\" to state"
+        log.trace "parseSDDP() Adding Device \"${USN}\" to state"
         devices << ["${USN}":lanEvent]
     } else { 
         // update the values
+        log.trace "parseSSDP() Updating device location (ip & port)"
         def d = devices."${USN}"
         d.ip = lanEvent.networkAddress
         d.port = lanEvent.deviceAddress
@@ -454,6 +456,7 @@ Map getSelectableDevice() {
  * Issues a SSDP M-SEARCH over the LAN for a specific type (see getDeviceType())
  */
 private discoverDevices() {
+    log.trace "discoverDevice() Issuing SSDP request"
 	sendHubCommand(new physicalgraph.device.HubAction("lan discovery ${getDeviceType()}", physicalgraph.device.Protocol.LAN))
 }
 
