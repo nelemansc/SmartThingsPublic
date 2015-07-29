@@ -65,7 +65,7 @@ def getDeviceName() {
  * @return namespace
  */
 def getNameSpace() {
-	return "st-andersson"
+	return "smartthings"
 }
 
 /**
@@ -191,7 +191,7 @@ def addDevice(){
 		def d = getChildDevice(dni)
 		if(!d) {
 			def newDevice = devices.find { (it.value.mac) == dni }
-            def deviceName = ${newDevice?.value.name} 
+            def deviceName = "${newDevice?.value.name}"
             if (!deviceName)
                 deviceName = getDeviceName() + "[${newDevice?.value.name}]"
 			d = addChildDevice(getNameSpace(), getDeviceName(), dni, newDevice?.value.hub, [label:"${deviceName}"])
