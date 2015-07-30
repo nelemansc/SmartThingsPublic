@@ -454,6 +454,7 @@ def boseSetNowPlaying(xmlData, override=null) {
     
     // If the previous section didn't handle this, take another stab at it
     if (!nowplaying) {
+        nowplaying = ""
         switch (override ? override : xmlData.attributes()['source']) {
             case "AUX":
                 nowplaying = "Auxiliary Input"
@@ -475,7 +476,8 @@ def boseSetNowPlaying(xmlData, override=null) {
             case "PANDORA":
             case "IHEART":
                 if (xmlData.ContentItem.itemName[0])
-                    nowplaying = "[${xmlData.ContentItem.itemName[0].text()}]\n\n"
+                    nowplaying += "[${xmlData.ContentItem.itemName[0].text()}]\n\n"
+            case "STORED_TRACK":
             	nowplaying += "${xmlData.track.text()}"
                 if (xmlData.artist)
                 	nowplaying += "\nby\n${xmlData.artist.text()}"
@@ -542,6 +544,7 @@ def boseSetPlayerAttributes(xmlData) {
         case "DEEZER":
         case "PANDORA":
         case "IHEART":
+        case "STORED_TRACK":
             trackText = trackDesc = "${xmlData.track.text()}"
             trackData["name"] = ${xmlData.track.text()}
             if (xmlData.artist) {
@@ -553,7 +556,7 @@ def boseSetPlayerAttributes(xmlData) {
     	        trackText += " (${xmlData.album.text()})"
 	            trackData["album"] = ${xmlData.album.text()}
             }
-        	break
+            break
         case "INTERNET_RADIO":
         	trackDesc = xmlData.stationName.text()
             trackText = xmlData.stationName.text() + ": " + xmlData.description.text()
