@@ -87,10 +87,7 @@ def deviceDiscovery()
 		def numFound = devices.size() ?: 0
 		
         // Make sure we get location updates (contains LAN data such as SSDP results, etc)
-        if(!state.subscribe) {
-            subscribe(location, null, onLocation, [filterEvents:false])
-            state.subscribe = true
-        }
+        subscribeNetworkEvents()
 
 		//device discovery request every 15s
 		if((deviceRefreshCount % 15) == 0) {
@@ -164,7 +161,8 @@ def initialize() {
 	state.subscribe = false
 	if (selecteddevice) {
 		addDevice()
-        runEvery5Minutes("discoverDevices")
+        refreshDevices()
+        subscribeNetworkEvents(true)
 	}	
 }
 
@@ -191,7 +189,7 @@ def addDevice(){
 		def d = getChildDevice(dni)
 		if(!d) {
 			def newDevice = devices.find { (it.value.mac) == dni }
-            def deviceName = "${newDevice?.value.name}"
+            def deviceName = newDevice?.value.name
             if (!deviceName)
                 deviceName = getDeviceName() + "[${newDevice?.value.name}]"
 			d = addChildDevice(getNameSpace(), getDeviceName(), dni, newDevice?.value.hub, [label:"${deviceName}"])
@@ -450,6 +448,32 @@ Map getSelectableDevice() {
 		map["${key}"] = value
 	}
 	map
+}
+
+/**
+ * Starts the refresh loop, making sure to keep us up-to-date with changes
+ *
+ */
+private refreshDevices() {
+    discoverDevices()
+    runIn(300, "refreshDevices")
+}
+
+/**
+ * Starts a subscription for network events
+ *
+ * @param force If true, will unsubscribe and subscribe if necessary (Optional, default false)
+ */
+private subscribeNetworkEvents(force=false) {
+    if (force) {
+        unsubscribe()
+        state.subscribe = false        
+    }
+
+    if(!state.subscribe) {
+        subscribe(location, null, onLocation, [filterEvents:false])
+        state.subscribe = true
+    }
 }
 
 /**

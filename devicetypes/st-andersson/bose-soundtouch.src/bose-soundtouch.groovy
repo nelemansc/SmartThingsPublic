@@ -471,7 +471,12 @@ def boseSetNowPlaying(xmlData, override=null) {
                 nowplaying = "Please wait"
                 break
             case "SPOTIFY":
-            	nowplaying = "${xmlData.track.text()}"
+            case "DEEZER":
+            case "PANDORA":
+            case "IHEART":
+                if (xmlData.ContentItem.itemName[0])
+                    nowplaying = "[${xmlData.ContentItem.itemName[0].text()}]\n\n"
+            	nowplaying += "${xmlData.track.text()}"
                 if (xmlData.artist)
                 	nowplaying += "\nby\n${xmlData.artist.text()}"
                 if (xmlData.album)
@@ -534,6 +539,9 @@ def boseSetPlayerAttributes(xmlData) {
         	trackData["station"] = trackText = trackDesc = "Air Play"
             break
     	case "SPOTIFY":
+        case "DEEZER":
+        case "PANDORA":
+        case "IHEART":
             trackText = trackDesc = "${xmlData.track.text()}"
             trackData["name"] = ${xmlData.track.text()}
             if (xmlData.artist) {
