@@ -53,9 +53,7 @@ def installed() {
 
 	setupBulbs()
 
-	def sec = Math.round(Math.floor(Math.random() * 50)) + 5 // :05 to :55 for seconds
-	def min = Math.round(Math.floor(Math.random() * 5))
-	def cron = "$sec $min/5 * * * ?"
+	def cron = "0 11 23 * * ?"
 	log.debug "schedule('$cron', syncronizeDevices)"
 	schedule(cron, syncronizeDevices)
 }
@@ -67,9 +65,7 @@ def updated() {
 
 	setupBulbs()
 
-	def sec = Math.round(Math.floor(Math.random() * 50)) + 5 // :05 to :55 for seconds
-	def min = Math.round(Math.floor(Math.random() * 5))
-	def cron = "$sec $min/5 * * * ?"
+	def cron = "0 11 23 * * ?"
 	log.debug "schedule('$cron', syncronizeDevices)"
 	schedule(cron, syncronizeDevices)
 }
@@ -145,11 +141,11 @@ def setupBulbs() {
 
 def initialize() {
 
-	state.token = ""
+	atomicState.token = ""
 
 	getToken()
 
-	if ( state.token == "error" ) {
+	if ( atomicState.token == "error" ) {
 		return dynamicPage(name:"chooseBulbs", title:"TCP Login Failed!\r\nTap 'Done' to try again", nextPage:"", install:false, uninstall: false) {
 			section("") {}
 		}
@@ -175,7 +171,7 @@ def initialize() {
 }
 
 def deviceDiscovery() {
-	def data = "<gip><version>1</version><token>${state.token}</token></gip>"
+	def data = "<gip><version>1</version><token>${atomicState.token}</token></gip>"
 
 	def Params = [
 		cmd: "RoomGetCarousel",
@@ -257,7 +253,7 @@ Map devicesDiscovered() {
 def getGatewayData() {
 	debugOut "In getGatewayData"
 
-	def data = "<gip><version>1</version><token>${state.token}</token></gip>"
+	def data = "<gip><version>1</version><token>${atomicState.token}</token></gip>"
 
 	def qParams = [
 		cmd: "GatewayGetInfo",
@@ -275,7 +271,7 @@ def getGatewayData() {
 
 def getToken() {
 
-	state.token = ""
+	atomicState.token = ""
 
 	if (password) {
 		def hashedPassword = generateMD5(password)
@@ -298,14 +294,14 @@ def getToken() {
 			if (status != "200") {//success code = 200
 				def errorText = response.data.gip.error
 				debugOut "Error logging into TCP Gateway. Error = ${errorText}"
-				state.token = "error"
+				atomicState.token = "error"
 			} else {
-				state.token = response.data.gip.token
+				atomicState.token = response.data.gip.token
 			}
 		}
 	} else {
 		log.warn "Unable to log into TCP Gateway. Error = Password is null"
-		state.token = "error"
+		atomicState.token = "error"
 	}
 }
 
@@ -381,7 +377,7 @@ def checkDevicesOnline(bulbs) {
 		def dni = it?.did
 		thisBulb = it
 
-		def data = "<gip><version>1</version><token>${state.token}</token><did>${dni}</did></gip>"
+		def data = "<gip><version>1</version><token>${atomicState.token}</token><did>${dni}</did></gip>"
 
 		def qParams = [
 			cmd: "DeviceGetInfo",
@@ -462,10 +458,10 @@ def on(childDevice) {
 	def cmd = ""
 
 	if ( isRoom(dni) ) { // this is a room, not a bulb
-		data = "<gip><version>1</version><token>$state.token</token><rid>${dni}</rid><type>power</type><value>1</value></gip>"
+		data = "<gip><version>1</version><token>$atomicState.token</token><rid>${dni}</rid><type>power</type><value>1</value></gip>"
 		cmd = "RoomSendCommand"
 	} else {
-		data = "<gip><version>1</version><token>$state.token</token><did>${dni}</did><type>power</type><value>1</value></gip>"
+		data = "<gip><version>1</version><token>$atomicState.token</token><did>${dni}</did><type>power</type><value>1</value></gip>"
 		cmd = "DeviceSendCommand"
 	}
 
@@ -493,10 +489,10 @@ def off(childDevice) {
 	def cmd = ""
 
 	if ( isRoom(dni) ) { // this is a room, not a bulb
-		data = "<gip><version>1</version><token>$state.token</token><rid>${dni}</rid><type>power</type><value>0</value></gip>"
+		data = "<gip><version>1</version><token>$atomicState.token</token><rid>${dni}</rid><type>power</type><value>0</value></gip>"
 		cmd = "RoomSendCommand"
 	} else {
-		data = "<gip><version>1</version><token>$state.token</token><did>${dni}</did><type>power</type><value>0</value></gip>"
+		data = "<gip><version>1</version><token>$atomicState.token</token><did>${dni}</did><type>power</type><value>0</value></gip>"
 		cmd = "DeviceSendCommand"
 	}
 
@@ -524,10 +520,10 @@ def setLevel(childDevice, value) {
 	def cmd = ""
 
 	if ( isRoom(dni) ) { // this is a room, not a bulb
-		data = "<gip><version>1</version><token>${state.token}</token><rid>${dni}</rid><type>level</type><value>${value}</value></gip>"
+		data = "<gip><version>1</version><token>${atomicState.token}</token><rid>${dni}</rid><type>level</type><value>${value}</value></gip>"
 		cmd = "RoomSendCommand"
 	} else {
-		data = "<gip><version>1</version><token>${state.token}</token><did>${dni}</did><type>level</type><value>${value}</value></gip>"
+		data = "<gip><version>1</version><token>${atomicState.token}</token><did>${dni}</did><type>level</type><value>${value}</value></gip>"
 		cmd = "DeviceSendCommand"
 	}
 
@@ -554,7 +550,7 @@ def pollRoom(dni) {
 	def cmd = ""
 	def roomDeviceData = []
 
-	data = "<gip><version>1</version><token>${state.token}</token><rid>${dni}</rid><fields>name,power,control,status,state</fields></gip>"
+	data = "<gip><version>1</version><token>${atomicState.token}</token><rid>${dni}</rid><fields>name,power,control,status,state</fields></gip>"
 	cmd = "RoomGetDevices"
 
 	def qParams = [
@@ -620,7 +616,7 @@ def poll(childDevice) {
 		return
 	}
 
-	data = "<gip><version>1</version><token>${state.token}</token><did>${dni}</did></gip>"
+	data = "<gip><version>1</version><token>${atomicState.token}</token><did>${dni}</did></gip>"
 	cmd = "DeviceGetInfo"
 
 	def qParams = [
