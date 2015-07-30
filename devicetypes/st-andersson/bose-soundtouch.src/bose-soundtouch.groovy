@@ -408,6 +408,8 @@ def boseParsePresets(xmlData) {
     for (preset in xmlData.preset) {
     	def id = preset.attributes()['id']
         def name = preset.ContentItem.itemName[0].text().replaceAll(~/ +/, "\n")
+        if (name == "##TRANS_SONGS##")
+            name = "Local\nPlaylist"
         sendEvent(name:"station${id}", value:name)
         missing = missing.findAll { it -> it != id }
         
@@ -477,7 +479,7 @@ def boseSetNowPlaying(xmlData, override=null) {
             case "IHEART":
                 if (xmlData.ContentItem.itemName[0])
                     nowplaying += "[${xmlData.ContentItem.itemName[0].text()}]\n\n"
-            case "STORED_TRACK":
+            case "STORED_MUSIC":
             	nowplaying += "${xmlData.track.text()}"
                 if (xmlData.artist)
                 	nowplaying += "\nby\n${xmlData.artist.text()}"
@@ -544,17 +546,17 @@ def boseSetPlayerAttributes(xmlData) {
         case "DEEZER":
         case "PANDORA":
         case "IHEART":
-        case "STORED_TRACK":
+        case "STORED_MUSIC":
             trackText = trackDesc = "${xmlData.track.text()}"
-            trackData["name"] = ${xmlData.track.text()}
+            trackData["name"] = xmlData.track.text()
             if (xmlData.artist) {
 	            trackText += " by ${xmlData.artist.text()}"
                 trackDesc += " - ${xmlData.artist.text()}"
-	            trackData["artist"] = ${xmlData.artist.text()}
+	            trackData["artist"] = xmlData.artist.text()
             }
             if (xmlData.album) {
     	        trackText += " (${xmlData.album.text()})"
-	            trackData["album"] = ${xmlData.album.text()}
+	            trackData["album"] = xmlData.album.text()
             }
             break
         case "INTERNET_RADIO":
