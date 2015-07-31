@@ -422,14 +422,16 @@ def parseSSDP(lanEvent) {
 
     if (!(devices."${USN}")) { 
         //device does not exist
-        log.trace "parseSDDP() Adding Device \"${USN}\" to state"
+        log.trace "parseSDDP() Adding Device \"${USN}\" to known list"
         devices << ["${USN}":lanEvent]
     } else { 
         // update the values
-        log.trace "parseSSDP() Updating device location (ip & port)"
         def d = devices."${USN}"
-        d.ip = lanEvent.networkAddress
-        d.port = lanEvent.deviceAddress
+        if (d.networkAddress != lanEvent.networkAddress || d.deviceAddress != lanEvent.deviceAddress) {
+	        log.trace "parseSSDP() Updating device location (ip & port)"
+            d.networkAddress = lanEvent.networkAddress
+            d.deviceAddress = lanEvent.deviceAddress
+        }
     }
 }
 
@@ -456,6 +458,7 @@ Map getSelectableDevice() {
  */
 private refreshDevices() {
     discoverDevices()
+    verifyDevices()
     runIn(300, "refreshDevices")
 }
 
