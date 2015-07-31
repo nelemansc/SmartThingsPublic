@@ -56,7 +56,7 @@ metadata {
 			}
 		}
 		
-		standardTile("refresh", "device.power", inactiveLabel: false, decoration: "flat") {
+		standardTile("refresh", "device.power", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
 		}
 		
