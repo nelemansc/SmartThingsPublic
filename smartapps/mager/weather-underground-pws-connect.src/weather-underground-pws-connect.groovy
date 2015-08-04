@@ -19,7 +19,7 @@ import java.text.DecimalFormat
  
 definition(
     name: "Weather Underground PWS Connect",
-    namespace: "co.mager",
+    namespace: "mager",
     author: "Andrew Mager",
     description: "Connect your SmartSense Temp/Humidity sensor to your Weather Underground Personal Weather Station.",
     category: "Green Living",
